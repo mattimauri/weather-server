@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from flask_graphql import GraphQLView # type: ignore
+from flask_graphql import GraphQLView
 from graphene import ObjectType, String, Field, Schema, List
 from pymongo import MongoClient
 import requests
@@ -29,14 +29,15 @@ def fetch_weather_data():
     response = requests.get(
         'https://api.stormglass.io/v2/weather/point',
         params={
-            'lat': 58.7984,
-            'lng': 17.8081,
+            #setto le coordinate di Cenesi Caput Mundi
+            'lat': 44.077511,
+            'lng': 8.137869,
             'params': ','.join(['waveHeight', 'airTemperature']),
-            'start': start.to('UTC').timestamp(),  # Converti in timestamp UTC
-            'end': end.to('UTC').timestamp()  # Converti in timestamp UTC
+            'start': start.to('UTC').timestamp(), 
+            'end': end.to('UTC').timestamp() 
         },
         headers={
-            'Authorization': 'example-api-key'  # Sostituisci con la tua chiave API
+            'Authorization': 'd6b4c7cc-461f-11ec-bf98-0242ac130002-d6b4c8b2-461f-11ec-bf98-0242ac130002' 
         }
     )
 

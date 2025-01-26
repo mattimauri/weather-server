@@ -17,4 +17,4 @@ COPY app/ .
 EXPOSE 5000
 
 # Comando per avviare l'applicazione
-CMD ["python", "-m", "app.py"]
+CMD ["python", "app.py"]
