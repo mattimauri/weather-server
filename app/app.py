@@ -23,21 +23,45 @@ def fetch_weather_data():
     if not rate_limiter.allow_request():
         raise Exception("Limite di chiamate giornaliere raggiunto")
 
-    # Configura la richiesta all'API di Stormglass
     start = arrow.now().floor('day')
     end = arrow.now().ceil('day')
     response = requests.get(
         'https://api.stormglass.io/v2/weather/point',
         params={
-            #setto le coordinate di Cenesi Caput Mundi
             'lat': 44.077511,
             'lng': 8.137869,
             'params': ','.join(['waveHeight', 'airTemperature']),
-            'start': start.to('UTC').timestamp(), 
-            'end': end.to('UTC').timestamp() 
+            'start': start.to('UTC').timestamp(),
+            'end': end.to('UTC').timestamp()
         },
         headers={
-            'Authorization': 'd6b4c7cc-461f-11ec-bf98-0242ac130002-d6b4c8b2-461f-11ec-bf98-0242ac130002' 
+            'Authorization': 'd6b4c7cc-461f-11ec-bf98-0242ac130002-d6b4c8b2-461f-11ec-bf98-0242ac130002'
+        }
+    )
+
+    if response.status_code == 200:
+        return response.json()
+    else:
+        raise Exception(f"Errore durante la richiesta all'API: {response.status_code}")
+
+# Funzione per ottenere i dati solar da Stormglass
+def fetch_solar_data():
+    if not rate_limiter.allow_request():
+        raise Exception("Limite di chiamate giornaliere raggiunto")
+
+    start = arrow.now().floor('day')
+    end = arrow.now().ceil('day')
+    response = requests.get(
+        'https://api.stormglass.io/v2/solar/point',
+        params={
+            'lat': 44.077511,
+            'lng': 8.137869,
+            'params': ','.join(['uvIndex']),
+            'start': start.to('UTC').timestamp(),
+            'end': end.to('UTC').timestamp()
+        },
+        headers={
+            'Authorization': 'd6b4c7cc-461f-11ec-bf98-0242ac130002-d6b4c8b2-461f-11ec-bf98-0242ac130002'
         }
     )
 
@@ -50,13 +74,20 @@ def fetch_weather_data():
 @app.route('/fetch-weather', methods=['GET'])
 def fetch_and_save_weather():
     try:
-        # Ottieni i dati da Stormglass
+        # Ottieni i dati da entrambe le API
         weather_data = fetch_weather_data()
+        solar_data = fetch_solar_data()
+
+        # Combina i dati in un unico oggetto
+        combined_data = {
+            'weather': weather_data,
+            'solar': solar_data
+        }
 
         # Salva i dati in MongoDB
         document = {
             'timestamp': datetime.now(),
-            'data': weather_data
+            'data': combined_data
         }
         collection.insert_one(document)
 
@@ -67,11 +98,18 @@ def fetch_and_save_weather():
 # Definizione del tipo GraphQL per i dati meteo
 class WeatherType(ObjectType):
     timestamp = String()
-    data = Field(lambda: WeatherDataType)
+    data = Field(lambda: CombinedDataType)
+
+class CombinedDataType(ObjectType):
+    weather = Field(lambda: WeatherDataType)
+    solar = Field(lambda: SolarDataType)
 
 class WeatherDataType(ObjectType):
     waveHeight = Field(lambda: WaveHeightType)
     airTemperature = Field(lambda: AirTemperatureType)
+
+class SolarDataType(ObjectType):
+    uvIndex = String()
 
 class WaveHeightType(ObjectType):
     value = String()
